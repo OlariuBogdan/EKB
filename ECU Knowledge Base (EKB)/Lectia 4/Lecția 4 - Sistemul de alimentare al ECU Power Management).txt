@@ -1,0 +1,384 @@
+# AREL - Automotive Reverse Engineering Lab
+## Lecția 4 - Sistemul de alimentare al ECU (Power Management)
+### Data: 05.08.2026
+### ECU de studiu: Bosch EDC16C34
+
+---
+
+# Obiectivul lecției
+
+Înțelegerea completă a sistemului de alimentare al unui ECU și stabilirea unei metode logice de diagnostic pentru ECU-urile fără comunicație.
+
+---
+
+# Concepte învățate
+
+## 1. De ce se utilizează un Buck Converter?
+
+Rol:
+- transformă tensiunea de 12V în 5V
+- eficiență foarte mare (85-95%)
+- poate furniza curenți mari
+- disipă foarte puțină căldură
+
+Comparație:
+
+LDO:
+- simplu
+- foarte silențios
+- randament mic
+- disipă diferența de tensiune sub formă de căldură
+
+Buck:
+- randament ridicat
+- poate alimenta întreg ECU-ul
+- produce zgomot de comutație
+- necesită bobină și condensatori
+
+Concluzie:
+În ECU, alimentarea principală este aproape întotdeauna realizată cu Buck Converter.
+
+---
+
+## 2. Lanțul alimentării
+
+12V
+↓
+Protecție polaritate
+↓
+TVS
+↓
+Filtru EMI
+↓
+Buck Converter
+↓
+5V
+↓
+LDO
+↓
+3.3V
+↓
+Procesor
+
+---
+
+## 3. Componentele principale ale unui Buck
+
+- Controler PWM
+- MOSFET
+- Bobină (Inductor)
+- Condensator de ieșire
+- Diodă sau MOSFET sincron
+
+---
+
+## 4. Rolul bobinei
+
+Bobina NU există doar pentru că "este nevoie de curent".
+
+Ea:
+
+- stochează energie în câmp magnetic
+- se opune variațiilor bruște ale curentului
+- transformă impulsurile PWM în curent aproape continuu
+- reduce ripple-ul împreună cu condensatorul
+
+Analogie:
+Bobina este un rezervor de energie între MOSFET și consumator.
+
+---
+
+## 5. Layout PCB
+
+Buck Converter este amplasat aproape întotdeauna:
+
+- lângă conectorul de alimentare
+- lângă bobină
+- lângă condensatorii mari
+
+Motive:
+
+- trasee scurte pentru curenți mari
+- reducerea EMI
+- disipare termică mai bună
+- distribuție simplificată a alimentării
+
+---
+
+# Regulile AREL învățate
+
+## Regula 18
+
+Curenții mari circulă pe trasee cât mai scurte.
+
+Semnalele sensibile trebuie ținute la distanță.
+
+---
+
+## Regula 19
+
+Nu înlocui niciodată prima componentă suspectă.
+
+Mai întâi demonstrează unde se oprește fluxul energiei.
+
+---
+
+## Regula 20
+
+Nu diagnostica după bip-ul multimetrului.
+
+Diagnostichează după valoarea rezistenței măsurate.
+
+---
+
+## Regula 21
+
+Folosește întotdeauna cel mai simplu instrument care poate răspunde la întrebarea ta.
+
+Multimetrul înaintea osciloscopului, atunci când este suficient.
+
+---
+
+# Exercițiile efectuate
+
+## Exercițiul 1
+
+Întrebare:
+Ce alegem pentru alimentarea principală?
+
+Răspuns:
+Buck Converter.
+
+Motiv:
+- randament mare
+- curenți mari
+- încălzire redusă
+
+---
+
+## Exercițiul 2
+
+Întrebare:
+Ce conține un Buck Converter?
+
+Răspuns corect:
+
+- Bobină
+- MOSFET
+- Condensator
+- Diodă/MOSFET sincron
+- Controler PWM
+
+---
+
+## Exercițiul 3
+
+Întrebare:
+Unde este amplasat controlerul Buck?
+
+Răspuns:
+
+Cât mai aproape de:
+
+- bobină
+- MOSFET
+- condensator
+
+pentru minimizarea buclei de curent.
+
+---
+
+## Exercițiul 4
+
+Întrebare:
+De ce Buck-ul este amplasat la marginea plăcii?
+
+Concluzii:
+
+✔ trasee scurte pentru curenți mari
+
+✔ disipare termică
+
+✔ reducerea zgomotului electromagnetic
+
+✔ organizare eficientă a PCB-ului
+
+---
+
+# Studiu de caz - EDC16C34
+
+Simptom:
+
+ECU fără comunicație.
+
+---
+
+Pasul 1
+
+Inspecție vizuală.
+
+Rezultat:
+
+Nu s-au observat:
+
+- oxidări
+- componente arse
+- trasee deteriorate
+
+---
+
+Pasul 2
+
+Măsurare rezistență între +12V și GND.
+
+Valoare:
+
+235 Ω
+
+Concluzie:
+
+Nu există scurtcircuit evident pe alimentarea principală.
+
+Observație:
+
+Testul în modul Diode poate evidenția încărcarea condensatorilor, dar concluziile trebuie trase pe baza valorilor măsurate.
+
+---
+
+Pasul 3
+
+Alimentare controlată.
+
+13,8V
+
+Limitare curent:
+
+0,5A
+
+Consum:
+
+9mA
+
+Concluzie:
+
+ECU nu pornește.
+
+Procesorul este probabil nealimentat.
+
+---
+
+Pasul 4
+
+Prima verificare recomandată:
+
+Măsurarea tensiunii de 5V.
+
+Motiv:
+
+Întregul lanț logic depinde de existența acesteia.
+
+Fără 5V nu vor funcționa:
+
+- regulatorul de 3.3V
+- procesorul
+- memoria
+- comunicația CAN
+
+---
+
+# Lanțul logic de diagnostic
+
+12V prezent?
+        │
+        ▼
+Protecție OK?
+        │
+        ▼
+5V prezent?
+        │
+        ▼
+3.3V prezent?
+        │
+        ▼
+RESET activ?
+        │
+        ▼
+CLOCK prezent?
+        │
+        ▼
+Procesor execută cod?
+        │
+        ▼
+CAN comunică?
+
+Acesta devine algoritmul standard de diagnostic pentru ECU-urile fără comunicație.
+
+---
+
+# Ce am învățat astăzi
+
+✔ Diferența dintre Buck și LDO.
+
+✔ Rolul bobinei într-un convertor Buck.
+
+✔ Structura unui convertor Buck.
+
+✔ Cum este proiectat layout-ul sursei de alimentare.
+
+✔ Cum se începe diagnosticarea unui ECU mort.
+
+✔ Importanța măsurării valorilor reale și nu doar a continuității.
+
+✔ Ordinea logică a verificărilor într-un diagnostic hardware.
+
+---
+
+# Tema practică
+
+Pe ECU-ul Bosch EDC16C34:
+
+□ Identifică zona Buck Converter.
+
+□ Identifică bobina principală.
+
+□ Identifică condensatorul de ieșire.
+
+□ Identifică MOSFET-ul(ele).
+
+□ Identifică controlerul Buck.
+
+□ Desenează traseul:
+
+12V
+↓
+Protecție
+↓
+Buck
+↓
+5V
+↓
+LDO
+↓
+3.3V
+↓
+MCU
+
+Nu contează dacă există mici erori. Scopul este să începi să "citești" un PCB ca pe o schemă electrică.
+
+---
+
+Status Curriculum AREL
+
+Modul 1 - Arhitectura Hardware ECU
+
+☑ Lecția 1 - Arhitectura generală
+
+☑ Lecția 2 - Procesor, Flash, EEPROM, Oscilator
+
+☑ Lecția 3 - Fluxul logic de pornire al ECU
+
+☑ Lecția 4 - Power Management (Buck & LDO)
+
+➡ Următoarea lecție:
+
+Lecția 5 - Regulatoarele LDO, semnalul RESET și secvența completă de pornire a procesorului (Power-Up Sequence).
