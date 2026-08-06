@@ -1,0 +1,417 @@
+# AREL - Automotive Reverse Engineering Lab
+## Lecția 5 - Secvența de pornire a ECU și introducere în Reverse Engineering
+### Data: 06.08.2026
+
+---
+
+# Obiectivul lecției
+
+Înțelegerea modului în care un ECU pornește și dezvoltarea unei metode logice de diagnostic.
+
+Scopul nu este memorarea componentelor, ci înțelegerea fluxului de energie și a ordinii în care trebuie verificat un ECU.
+
+---
+
+# 1. Secvența de pornire a unui ECU
+
+Ordinea generală este:
+
+12V
+↓
+Protecție la inversarea polarității
+↓
+TVS / Protecții
+↓
+Filtru EMI
+↓
+Buck Converter (5V)
+↓
+LDO 3.3V
+↓
+LDO 1.8V (unde există)
+↓
+RESET
+↓
+CLOCK
+↓
+Procesor
+↓
+Memorie Flash
+↓
+CAN
+↓
+Actuatoare
+
+Concluzie:
+
+Procesorul NU începe execuția imediat după apariția celor 12V.
+
+Pentru pornire sunt necesare:
+
+- alimentări stabile
+- RESET eliberat
+- CLOCK funcțional
+
+---
+
+# 2. RESET
+
+RESET ține procesorul blocat până când toate alimentările sunt stabile.
+
+Dacă RESET rămâne activ:
+
+- procesorul nu execută cod;
+- Flash-ul nu este accesat;
+- CAN nu comunică.
+
+Ordinea verificării este:
+
+12V
+↓
+
+5V
+↓
+
+3.3V
+↓
+
+RESET
+↓
+
+CLOCK
+
+---
+
+# 3. CLOCK (Oscilator)
+
+Procesorul nu poate executa nici o instrucțiune fără semnal de ceas.
+
+Posibile cauze pentru lipsa oscilației:
+
+- cuarț defect;
+- traseu întrerupt;
+- condensatoare de sarcină defecte;
+- circuit intern al procesorului defect;
+- măsurătoare greșită cu osciloscopul.
+
+---
+
+# 4. Lecție despre osciloscop
+
+Experiment realizat:
+
+ECU alimentat.
+
+Sonda atinge bobina convertorului Buck fără masa sondei.
+
+Observație:
+
+Apare un semnal sinusoidal.
+
+După conectarea masei sondei la GND ECU:
+
+Semnalul dispare.
+
+Concluzie:
+
+Nu era semnalul convertorului Buck.
+
+Era zgomot electromagnetic captat de sonda aflată "în aer".
+
+Regula:
+
+Niciodată nu se interpretează o măsurătoare fără o referință de masă corectă.
+
+---
+
+# 5. Reverse Engineering
+
+Schimbarea filosofiei cursului.
+
+Până acum:
+
+"Identific componente."
+
+De acum:
+
+"Identific funcții."
+
+Ordinea analizării unui ECU:
+
+Conector
+
+↓
+
+Alimentare
+
+↓
+
+Protecții
+
+↓
+
+Buck
+
+↓
+
+LDO
+
+↓
+
+Procesor
+
+↓
+
+Memorii
+
+↓
+
+CAN
+
+↓
+
+Actuatoare
+
+---
+
+# 6. Reguli AREL învățate astăzi
+
+## Regula 22
+
+Energia nu apare și nu dispare.
+
+Ea poate doar să fie urmărită.
+
+---
+
+## Regula 23
+
+Diagnosticul începe întotdeauna cu alimentarea și se termină cu funcția.
+
+Ordinea:
+
+Alimentare
+
+↓
+
+RESET
+
+↓
+
+CLOCK
+
+↓
+
+Procesor
+
+↓
+
+Memorii
+
+↓
+
+CAN
+
+↓
+
+Actuatoare
+
+---
+
+## Regula 24
+
+Nu presupune unde este defectul.
+
+Demonstrează unde se întrerupe funcționarea.
+
+---
+
+## Regula 25
+
+Nu căuta tensiuni "din memorie".
+
+Verifică doar tensiunile pe care arhitectura acelui ECU trebuie să le aibă.
+
+---
+
+## Regula 26
+
+Absența unui semnal pe osciloscop NU înseamnă automat că semnalul nu există.
+
+Se verifică întotdeauna:
+
+- setările osciloscopului;
+- masa sondei;
+- punctul de măsură;
+- influența sondei asupra circuitului.
+
+---
+
+## Regula 27
+
+După ce alimentările, RESET și CLOCK sunt corecte, întrebarea nu mai este:
+
+"Ce componentă este defectă?"
+
+Întrebarea devine:
+
+"Procesorul execută cod?"
+
+---
+
+# Exercițiile rezolvate
+
+Exercițiul 1
+
+Întrebare:
+
+Procesorul pornește imediat după apariția tensiunii de 5V?
+
+Răspuns:
+
+Nu.
+
+Mai sunt necesare:
+
+- 3.3V
+- eventual 1.8V
+- RESET
+- CLOCK
+
+---
+
+Exercițiul 2
+
+ECU:
+
+12V ✔
+
+5V ✔
+
+3.3V ✔
+
+Fără CAN.
+
+Răspuns:
+
+Se verifică:
+
+- RESET
+- CLOCK
+
+---
+
+Exercițiul 3
+
+Cum începe analiza unui ECU necunoscut?
+
+Răspuns:
+
+Se începe de la alimentare.
+
+Nu de la procesor.
+
+---
+
+Exercițiul 4
+
+Cum identificăm alimentarea?
+
+Metode:
+
+✔ trasee groase;
+
+✔ condensatorul principal;
+
+✔ Buck Converter;
+
+✔ protecție la polaritate;
+
+✔ siguranță;
+
+✔ TVS.
+
+---
+
+Exercițiul 5
+
+Cum verificăm un cuarț?
+
+Nu cu ohmetrul.
+
+Se verifică:
+
+- lipsa scurtului;
+- traseele;
+- condensatoarele de sarcină;
+- apoi oscilația cu osciloscopul.
+
+---
+
+# Concluzii
+
+Încep să privesc ECU-ul ca un sistem.
+
+Nu mai caut componente individuale.
+
+Urmăresc fluxul energiei și funcționarea logică.
+
+---
+
+# Nivelul actual
+
+Alimentări:
+★★★★☆
+
+Reverse Engineering:
+★★★☆☆
+
+Logică de diagnostic:
+★★★★☆
+
+Osciloscop:
+★★★☆☆
+
+---
+
+# Tema
+
+Fără măsurători.
+
+Identificarea vizuală pe EDC16C34 a următoarelor blocuri:
+
+□ Alimentare
+
+□ Procesor
+
+□ Memorie
+
+□ CAN
+
+□ Drivere
+
+---
+
+# Lecția următoare
+
+AREL-001
+
+Reverse Engineering complet Bosch EDC16C34
+
+Obiectiv:
+
+Realizarea primei hărți complete (Board Map) a unui ECU Bosch.
+
+Vom identifica:
+
+- traseul alimentării;
+- convertorul Buck;
+- regulatoarele LDO;
+- procesorul;
+- memoria Flash;
+- EEPROM;
+- magistrala CAN;
+- driverele;
+- punctele de măsură.
+
+Acesta va deveni primul ECU documentat complet în biblioteca AREL.
