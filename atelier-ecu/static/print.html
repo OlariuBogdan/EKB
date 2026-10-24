@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tipărire</title>
+<style>
+  @page { size: A4; margin: 13mm 14mm; }
+  * { box-sizing: border-box; }
+  html { background: #e9edf2; }
+  body { margin: 0; font: 11pt/1.4 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #17212e; }
+  .bar { position: sticky; top: 0; background: #14325c; color: #fff; padding: 10px 16px; display: flex; gap: 10px; align-items: center; z-index: 5; }
+  .bar b { flex: 1; }
+  .bar button { font: inherit; border: 0; border-radius: 8px; padding: 8px 14px; cursor: pointer; background: #fff; color: #14325c; font-weight: 600; }
+  .page { background: #fff; width: 210mm; max-width: 100%; margin: 14px auto; padding: 14mm; box-shadow: 0 2px 14px rgba(0,0,0,.15); }
+  header.doc { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; border-bottom: 2.5px solid #14325c; padding-bottom: 8px; margin-bottom: 12px; }
+  header.doc .shop { font-size: 15pt; font-weight: 700; color: #14325c; }
+  header.doc .contact { font-size: 9.5pt; color: #4a5a70; white-space: pre-line; }
+  header.doc .ref { text-align: right; font-size: 9.5pt; color: #4a5a70; }
+  header.doc .ref b { display: block; font-size: 13pt; color: #14325c; }
+  h1 { font-size: 15pt; margin: 4px 0 10px; color: #14325c; }
+  h2 { font-size: 10.5pt; text-transform: uppercase; letter-spacing: .05em; color: #1f6fb2; margin: 14px 0 5px; border-bottom: 1px solid #c5d0de; padding-bottom: 2px; break-after: avoid; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 22px; }
+  .kv { font-size: 10.5pt; display: grid; grid-template-columns: 31mm 1fr; gap: 0 6px; } .kv span { color: #66768b; }
+  .box { border: 1px solid #c5d0de; border-radius: 6px; padding: 8px 10px; white-space: pre-wrap; background: #f8fafc; }
+  table { width: 100%; border-collapse: collapse; font-size: 9.5pt; break-inside: auto; }
+  th { background: #14325c; color: #fff; text-align: left; padding: 4px 6px; font-weight: 600; }
+  td { border-bottom: 1px solid #d6dee9; padding: 4px 6px; vertical-align: top; }
+  tr { break-inside: avoid; }
+  .photos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .photos figure { margin: 0; break-inside: avoid; }
+  .photos img { width: 100%; aspect-ratio: 4/3; object-fit: cover; border: 1px solid #c5d0de; border-radius: 4px; display: block; }
+  .photos figcaption { font-size: 8.5pt; color: #4a5a70; margin-top: 2px; }
+  .sign { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-top: 18px; break-inside: avoid; }
+  .sign div { border-top: 1px solid #17212e; padding-top: 3px; font-size: 9.5pt; color: #4a5a70; min-height: 22mm; display: flex; flex-direction: column; justify-content: flex-end; }
+  .sign img { max-height: 18mm; max-width: 60mm; align-self: flex-start; }
+  .terms { font-size: 9pt; color: #4a5a70; }
+  .ok { color: #1e7d3a; font-weight: 600; } .bad { color: #b3261e; font-weight: 600; } .mid { color: #b36b00; font-weight: 600; }
+  .muted { color: #66768b; }
+  @media print {
+    html { background: #fff; }
+    .bar { display: none; }
+    .page { box-shadow: none; margin: 0; padding: 0; width: auto; }
+  }
+  @media (max-width: 700px) { .page { padding: 12px; } .two { grid-template-columns: 1fr; } .photos { grid-template-columns: repeat(2, 1fr); } }
+</style>
+</head>
+<body>
+<div class="bar"><b id="bt">Previzualizare</b><button onclick="window.print()">🖨 Tipărește / PDF</button><button onclick="window.close()">Închide</button></div>
+<div class="page" id="page">Se încarcă…</div>
+<script src="/jobs.js"></script>
+<script>
+'use strict';
+const q = new URLSearchParams(location.search);
+const id = q.get('id'), type = q.get('type') === 'internal' ? 'internal' : 'client';
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fmt = s => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s || ''); return m ? `${m[3]}.${m[2]}.${m[1]}` : (s || ''); };
+const kv = (k, v) => v ? `<div class="kv"><span>${esc(k)}</span><div>${esc(v)}</div></div>` : '';
+const num = v => { const x = parseFloat(String(v ?? '').replace(',', '.')); return isFinite(x) ? x : 0; };
+const money = (n, s) => (Math.round(n * 100) / 100).toLocaleString('ro-RO', { maximumFractionDigits: 2 }) + ' ' + (s.currency || 'lei');
+const estCost = (e, s) => ({ best: num(e.best_hours) * num(s.hourly_rate) + num(e.best_parts), worst: num(e.worst_hours) * num(s.hourly_rate) + num(e.worst_parts) });
+const jobsList = d => (d.job_types || []).map(k => { const j = jobByKey(k); return j ? j.label : k; }).concat(d.job_other ? ['Altă lucrare: ' + d.job_other] : []);
+const resCls = r => r === 'Rezolvat' ? 'ok' : r === 'Nereușit' ? 'bad' : r ? 'mid' : 'muted';
+
+async function load() {
+  const [c, s] = await Promise.all([fetch('/api/cases/' + id).then(r => { if (r.status === 401) throw new Error('Deschide mai întâi aplicația și introdu PIN-ul.'); return r.json(); }), fetch('/api/settings').then(r => r.json())]);
+  if (c.error) throw new Error(c.error);
+  render(c, s);
+}
+
+function photosHtml(list) {
+  if (!list.length) return '';
+  return `<h2>Fotografii</h2><div class="photos">` + list.map(p => `<figure><img src="/photos/${esc(p.file)}"><figcaption><b>${esc(p.cat)}</b>${p.caption ? ' · ' + esc(p.caption) : ''}</figcaption></figure>`).join('') + `</div>`;
+}
+
+function render(c, s) {
+  const d = c.data;
+  document.title = (type === 'client' ? 'Raport ' : 'Fișă internă ') + c.number;
+  document.getElementById('bt').textContent = (type === 'client' ? 'Raport client · ' : 'Fișă internă · ') + c.number;
+  let html = `<header class="doc"><div><div class="shop">${esc(s.shop_name)}</div><div class="contact">${esc(s.shop_contact)}</div></div>
+    <div class="ref"><b>${esc(c.number)}</b>Primit: ${fmt(c.created)}${d.delivered_date ? '<br>Predat: ' + fmt(d.delivered_date) : ''}</div></header>`;
+  html += `<h1>${type === 'client' ? 'Raport de reparație ECU' : 'Fișă internă de placă și reparație'}</h1>`;
+  html += `<div class="two"><div>${kv('Client', d.client_name)}${kv('Telefon', d.client_phone)}${kv('Vehicul', d.vehicle)}${kv('Nr. înmatriculare', d.plate)}${type === 'internal' ? kv('VIN', d.vin) : ''}</div>
+    <div>${kv('Tip modul', (moduleByKey(d.module_type) || [])[1])}${kv('Model', d.ecu_model)}${type === 'internal' ? kv('Familie', d.ecu_family) : ''}${kv('Cod hardware', d.ecu_hw)}${kv('Cod software', d.ecu_sw)}${type === 'internal' ? kv('Stare caz', d.status) : ''}</div></div>`;
+  if (d.symptom) html += `<h2>Problema semnalată</h2><div class="box">${esc(d.symptom)}</div>`;
+  if (type === 'internal' && d.visual_state) html += `<h2>Starea la primire</h2><div class="box">${esc(d.visual_state)}</div>`;
+
+  const jl = jobsList(d);
+  if (jl.length) html += `<h2>Lucrare</h2><div class="box">${jl.map(x => '• ' + esc(x)).join('<br>')}</div>`;
+  if (type === 'client') {
+    let work = d.client_summary || '';
+    if (!work && d.entries.length) work = d.entries.filter(e => e.action || e.defect).map(e => '• ' + (e.defect ? e.defect + ': ' : '') + (e.action || '')).join('\n');
+    html += `<h2>Ce am constatat și ce am făcut</h2><div class="box">${esc(work || '—')}</div>`;
+    const res = d.entries.filter(e => e.result);
+    if (res.length) html += `<h2>Rezultat</h2><table><tr><th>Intervenție</th><th style="width:30mm">Rezultat</th></tr>${res.map(e => `<tr><td>${esc(e.action || e.defect)}${e.part ? ' <span class="muted">(' + esc(e.part) + ')</span>' : ''}</td><td class="${resCls(e.result)}">${esc(e.result)}</td></tr>`).join('')}</table>`;
+    html += photosHtml(c.photos.filter(p => p.client));
+    const E = d.estimate || {};
+    if (d.estimate_on_report !== false && (E.best_hours || E.worst_hours || E.best_parts || E.worst_parts)) {
+      const t = estCost(E, s);
+      html += `<h2>Estimare inițială (orientativă)</h2><table><tr><th>Scenariu</th><th style="width:34mm">Cost estimat</th><th>Ce înseamnă</th></tr>
+        <tr><td>Favorabil</td><td>${money(t.best, s)}</td><td>${esc(E.best_note)}</td></tr>
+        <tr><td>Nefavorabil</td><td>${money(t.worst, s)}</td><td>${esc(E.worst_note)}</td></tr></table>
+        <p class="terms">Estimarea este orientativă. Prețul final se stabilește după diagnostic și se comunică înainte de continuarea lucrării.</p>`;
+    }
+    const lvC = new Set((d.job_types || []).map(k => (jobByKey(k) || {}).level).filter(Boolean)), cp = d.compliance || {};
+    if (lvC.has('law')) html += `<p class="terms"><b>Declarație:</b> clientul declară că vehiculul este folosit conform legii (${esc(cp.lawful_use || '—')}) și își asumă consecințele modificării.</p>`;
+    if (lvC.has('doc')) html += `<p class="terms"><b>Verificare acte:</b> actele de proprietate și identitate ale vehiculului au fost verificate înainte de lucrare.</p>`;
+    html += `<h2>Preț și garanție</h2><div class="two">${kv('Preț', d.price)}${kv('Garanție', d.warranty_days ? d.warranty_days + ' zile' : '')}</div><p class="terms">${esc(s.terms)}</p>`;
+    if (d.data_risk_ok) html += `<p class="terms">Clientul a fost informat înainte de lucrare despre riscul de pierdere de date și de a nu reuși reparația și a fost de acord.</p>`;
+    html += `<div class="sign"><div>${d.signature ? `<img src="${d.signature}">` : ''}Semnătura clientului${d.delivered_date ? ' · ' + fmt(d.delivered_date) : ''}</div><div>Atelier: ${esc(s.shop_name)}</div></div>`;
+  } else {
+    const bk = d.backup || {};
+    html += `<h2>Backup</h2><div class="two">${kv('Făcut și verificat', bk.done ? 'Da' : 'Nu')}${kv('Metoda', bk.method)}${kv('Fișier / hash', bk.hash)}${kv('Observații', bk.note)}</div>`;
+    const rails = (d.rails || []).filter(r => r.cold || r.hot || r.expected);
+    if (rails.length) html += `<h2>Tensiuni pe șine</h2><table><tr><th>Punct</th><th>Așteptat</th><th>Rece</th><th>Cald</th></tr>${rails.map(r => `<tr><td>${esc(r.name)}</td><td>${esc(r.expected)}</td><td>${esc(r.cold)}</td><td>${esc(r.hot)}</td></tr>`).join('')}</table>`;
+    const outs = (d.outputs || []).filter(r => r.name || r.note);
+    if (outs.length) html += `<h2>Ieșiri și funcții testate</h2><table><tr><th>Ieșire / funcție</th><th style="width:26mm">Stare</th><th>Observații</th></tr>${outs.map(r => `<tr><td>${esc(r.name)}</td><td class="${r.status === 'OK' ? 'ok' : r.status === 'Defect' ? 'bad' : 'muted'}">${esc(r.status)}</td><td>${esc(r.note)}</td></tr>`).join('')}</table>`;
+    const comps = (d.components || []).filter(r => r.ref || r.type || r.obs);
+    if (comps.length) html += `<h2>Componente inspectate</h2><table><tr><th style="width:26mm">Ref. / zonă</th><th>Componentă</th><th>Constatare</th></tr>${comps.map(r => `<tr><td>${esc(r.ref)}</td><td>${esc(r.type)}</td><td>${esc(r.obs)}</td></tr>`).join('')}</table>`;
+    if (d.diagnosis) html += `<h2>Diagnostic</h2><div class="box">${esc(d.diagnosis)}</div>`;
+    if (d.entries.length) html += `<h2>Intervenții</h2><table><tr><th>Defect</th><th>Cauză</th><th>Ce am făcut</th><th>Piesă</th><th style="width:22mm">Rezultat</th></tr>${d.entries.map(e => `<tr><td>${esc(e.defect)}</td><td>${esc(e.cause)}</td><td>${esc(e.action)}</td><td>${esc(e.part)}</td><td class="${resCls(e.result)}">${esc(e.result)}</td></tr>`).join('')}</table>`;
+    if (d.internal_notes) html += `<h2>Note interne</h2><div class="box">${esc(d.internal_notes)}</div>`;
+    const E = d.estimate || {};
+    if (E.best_hours || E.worst_hours || E.scope || E.risks) {
+      const t = estCost(E, s);
+      html += `<h2>Evaluare</h2><table><tr><th>Scenariu</th><th style="width:20mm">Ore</th><th style="width:22mm">Piese</th><th style="width:30mm">Cost</th><th>Descriere</th></tr>
+        <tr><td>Favorabil</td><td>${esc(E.best_hours)}</td><td>${esc(E.best_parts)}</td><td>${money(t.best, s)}</td><td>${esc(E.best_note)}</td></tr>
+        <tr><td>Nefavorabil</td><td>${esc(E.worst_hours)}</td><td>${esc(E.worst_parts)}</td><td>${money(t.worst, s)}</td><td>${esc(E.worst_note)}</td></tr></table>
+        <div class="two" style="margin-top:6px">${kv('Șanse de reușită', E.success ? E.success + ' %' : '')}${kv('Tarif folosit', s.hourly_rate ? s.hourly_rate + ' ' + (s.currency || '') + '/oră' : '')}</div>
+        ${E.scope ? `<div class="box" style="margin-top:6px"><b>Ce presupune:</b>\n${esc(E.scope)}</div>` : ''}${E.risks ? `<div class="box" style="margin-top:6px"><b>Riscuri:</b>\n${esc(E.risks)}</div>` : ''}`;
+    }
+    const ck = d.checklist || [];
+    if (ck.length) html += `<h2>Pași (${ck.filter(i => i.done).length}/${ck.length} făcuți)</h2><table>${ck.map(i => `<tr><td style="width:8mm">${i.done ? '☑' : '☐'}</td><td>${esc(i.text)}</td></tr>`).join('')}</table>`;
+    const lvI = new Set((d.job_types || []).map(k => (jobByKey(k) || {}).level).filter(Boolean)), cp = d.compliance || {};
+    if (lvI.size) html += `<h2>Conformitate</h2><div class="two">${lvI.has('doc') ? kv('Acte verificate', cp.docs_checked ? 'Da' : 'NU') + kv('Note acte', cp.docs_note) : ''}${lvI.has('law') ? kv('Utilizare declarată', cp.lawful_use) + kv('Detalii', cp.lawful_note) + kv('Declarație semnată', cp.declaration_signed ? 'Da' : 'NU') : ''}${lvI.has('safety') ? kv('Validare siguranță', cp.safety_validated ? 'Da' : 'NU') : ''}</div>`;
+    html += photosHtml(c.photos);
+    html += `<h2>Predare</h2><div class="two">${kv('Preț', d.price)}${kv('Garanție', d.warranty_days ? d.warranty_days + ' zile' : '')}${kv('Riscuri acceptate', d.data_risk_ok ? 'Da' : 'Nu')}${kv('Predat la', fmt(d.delivered_date))}</div>`;
+    if (d.signature) html += `<div class="sign"><div><img src="${d.signature}">Semnătura clientului</div><div></div></div>`;
+  }
+  document.getElementById('page').innerHTML = html;
+}
+load().catch(e => { document.getElementById('page').textContent = e.message; });
+</script>
+</body>
+</html>

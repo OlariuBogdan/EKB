@@ -1,0 +1,63 @@
+FIȘE ECU – prototip (aplicație web locală)
+==========================================
+
+CE ESTE
+Aplicația în care completezi fișa unei plăci ECU când vine clientul: date client și vehicul, ECU, tensiuni măsurate,
+poze făcute cu iPhone-ul, defecte și reparații, semnătură la predare, apoi tipărești raportul pentru client sau fișa internă.
+Rulează pe calculatorul din atelier. Datele rămân la tine (nu merg pe internet).
+
+CE ÎȚI TREBUIE
+- Un calculator cu Python 3.8 sau mai nou (python.org/downloads; la instalare bifează „Add python.exe to PATH”).
+  Nu trebuie instalat nimic altceva.
+- iPhone-ul și calculatorul în aceeași rețea Wi-Fi.
+
+PORNIRE
+- Windows: dublu-click pe start.bat. Se deschide browserul. Dacă Windows întreabă despre Firewall, alege „Rețele private” și Permite.
+- Mac/Linux: dublu-click pe start.command (sau în terminal: python3 server.py).
+Fereastra neagră trebuie să rămână deschisă cât lucrezi. Se oprește cu Ctrl+C sau închizând-o.
+
+DE PE iPHONE
+1. În fereastra de pornire vezi o adresă de tipul http://192.168.x.x:8080 (o vezi și în aplicație la ⚙ Setări).
+2. O deschizi în Safari pe iPhone.
+3. Partajare → „Adaugă pe ecranul principal”, ca să o ai ca aplicație.
+4. În caz, fila Poze → „Fă poză” deschide camera. Pozele se reduc automat (max. 1800 px) și se salvează pe calculator.
+
+FOLOSIRE
+1. „+ Caz nou” primește un număr automat (ex. 2026-001).
+2. Completezi filele: Client & modul → Lucrare & evaluare → Fișa plăcii → Poze → Defecte & reparații → Predare. Se salvează singur („Salvat ✓”).
+3. La Predare: scrii rezumatul pentru client (butonul „Preia din intervenții” ajută), prețul, garanția, iei semnătura pe ecran.
+4. „Raport client” sau „Fișă internă” deschide o pagină gata de tipărit. Pe calculator: Tipărește → Salvează ca PDF sau imprimantă.
+   Pe iPhone: Partajare → Tipărește (AirPrint) sau Salvează în Fișiere.
+5. În ⚙ Setări: numele și contactul atelierului (apar pe raport), garanția implicită, textul garanției, PIN opțional.
+
+MODULE ȘI LUCRĂRI
+- Tip de modul: ECU motor (diesel/benzină), TCM, BCM, bord, navigație/infotainment, ABS/ESP, EPS, airbag, climatizare, gateway și altele.
+- Tip de lucrare (poți alege mai multe): diagnoză, reparații hardware, recuperare memorie, citire/scriere, clonare, codare, imobilizator,
+  transfer kilometraj la înlocuire bord, reprogramare, remediere DPF/EGR, dezactivare DPF/EGR/AdBlue, airbag SRS și altele.
+- Alegerea lucrărilor generează o listă de pași (bifezi ce ai făcut) și poate propune o estimare.
+- Evaluare: cazul favorabil și cazul nefavorabil (ore, piese, descriere), cu cost calculat din tariful pe oră din ⚙ Setări.
+  Orele propuse sunt orientative: ajustează-le după experiența ta. Estimarea poate apărea (interval de preț) pe raportul clientului.
+
+CONFORMITATE (poartă înainte de predare)
+Pentru lucrările marcate „acte”, „legal” sau „siguranță”, cazul nu poate fi trecut în starea „Predat” până nu completezi:
+- acte: verificarea actelor vehiculului (certificat de înmatriculare, act de identitate, factură/contract) și potrivirea VIN;
+- legal: utilizarea legală declarată și declarația de responsabilitate a clientului;
+- siguranță (airbag): validarea funcțională a sistemului după lucrare;
+- semnătura clientului pe fișă, pentru oricare dintre acestea.
+Dezactivarea DPF/EGR/AdBlue pe un vehicul înmatriculat pentru drumuri publice este în general ilegală în UE. Aplicația nu îți verifică legalitatea:
+răspunderea este a ta și a clientului. Verifică legislația din țara ta.
+
+BACKUP (IMPORTANT)
+⚙ Setări → „Descarcă backup” face o arhivă cu baza de date și toate pozele. Fă-l regulat și păstrează-l în afara calculatorului.
+Datele sunt în folderul „data” de lângă server.py. Poți copia folderul întreg pentru a muta aplicația pe alt calculator.
+
+SECURITATE
+- Aplicația e vizibilă tuturor din rețeaua Wi-Fi a atelierului. Dacă Wi-Fi-ul e folosit și de alții, setează un PIN în ⚙ Setări.
+- Nu o expune pe internet. Conține date personale ale clienților (nume, telefon, număr de înmatriculare): respectă regulile GDPR.
+
+LIMITE ALE PROTOTIPULUI
+- Un singur utilizator. Fără conturi.
+- Pozele au doar categoria și descrierea; fără adnotări pe poză.
+- Fără trimitere automată pe e-mail sau WhatsApp (tipărești sau salvezi PDF și trimiți tu).
+- Catalogul de defecte și valorile de referință pe model nu sunt integrate încă.
+- Pașii și orele din profilurile de lucrări sunt generale, nu specifice unui model. Ajustează-le.
